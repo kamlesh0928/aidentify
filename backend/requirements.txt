@@ -1,3 +1,5 @@
-Flask==3.1.2
-Flask-CORS==6.0.1
-python-dotenv==1.2.1
+python-dotenv
+fastapi
+uvicorn
+cloudinary
+python-multipart

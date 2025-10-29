@@ -1,18 +1,12 @@
-from flask import Flask
-from flask_cors import CORS
-from dotenv import load_dotenv
-import os
+from fastapi import FastAPI
 
-load_dotenv()
+from app.config import Config
+from app.api.routes_image import router as image_router
 
-PORT = os.getenv("PORT")
+app = FastAPI(title="AIdentify Backend")
 
-app = Flask(__name__)
-CORS(app)
+app.include_router(image_router, prefix = "/api/analyze-image", tags = ["Image Analysis"])
 
-@app.route('/')
-def home():
-    return f"Server is running on Port {PORT}"
-
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=PORT)
+@app.get("/")
+def root():
+    return {"message": f"Server is running on Port 5001"}
