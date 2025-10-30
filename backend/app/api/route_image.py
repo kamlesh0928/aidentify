@@ -4,8 +4,13 @@ import tempfile
 
 router = APIRouter()
 
-@router.post("/upload")
-async def upload(file: UploadFile = File(...)):
+@router.post("/analyze")
+async def analyze_image(file: UploadFile = File(...)):
+    """
+        Endpoint to upload and analyze the given image.
+    """
+
+    # Currently only uploads the image and returns the URL.
     try:
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
             content = await file.read()

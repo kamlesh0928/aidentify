@@ -10,9 +10,30 @@ cloudinary.config(
 
 def upload_image(file_path: str) -> str:
     """
-        Uploads image to Clodinary.
+        Uploads image to Cloudinary.
     """
 
     folder_name = "AIdentify/images"
-    response = cloudinary.uploader.upload(file_path, folder_name = folder_name)
+    response = cloudinary.uploader.upload(file_path, folder = folder_name, resource_type = "image")
+    return response["secure_url"]
+
+def upload_video(file_path: str) -> str:
+    """
+        Uploads video to Cloudinary.
+    """
+
+    folder_name = "AIdentify/videos"
+    response = cloudinary.uploader.upload(file_path, folder = folder_name, resource_type = "video")
+    return response["secure_url"]
+
+def upload_audio(file_path: str) -> str:
+    """
+        Uploads audio to Cloudinary.
+        Only .mp3 and .wav formats are supported.
+    """
+
+    folder_name = "AIdentify/audios"
+
+    # Cloudinary uses resource_type "video" to store audio files.
+    response = cloudinary.uploader.upload(file_path, folder = folder_name, resource_type = "video")
     return response["secure_url"]
