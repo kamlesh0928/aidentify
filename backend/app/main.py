@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 
-from app.api.route_image import router as image_router
-from app.api.route_video import router as video_router
-from app.api.route_audio import router as audio_router
+from app.api.image_route import router as image_router
+from app.api.video_route import router as video_router
+from app.api.audio_route import router as audio_router
 
 app = FastAPI(title="AIdentify Backend")
 
