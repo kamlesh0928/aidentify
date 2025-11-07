@@ -10,4 +10,3 @@ class Config:
     MONGO_URL=os.getenv("MONGO_URL")
     MONGO_DB_NAME=os.getenv("MONGO_DB_NAME")
     GEMINI_API_KEY=os.getenv("GEMINI_API_KEY")
-    IMAGE_ANALYSIS_MODEL_NAME=os.getenv("IMAGE_ANALYSIS_MODEL_NAME")

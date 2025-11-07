@@ -1,5 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 import tempfile
+import os
 
 from app.core.cloudinary_client import upload_audio
 from app.schemas.result_schema import ResultSchema
@@ -39,3 +40,9 @@ async def analyze_audio(file: UploadFile = File(...)):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+    finally:
+        # Clean up the temporary file
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+            logger.info(f"Temporary file {temp_file_path} deleted.")
