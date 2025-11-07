@@ -5,6 +5,8 @@ import os
 from app.core.cloudinary_client import upload_video
 from app.schemas.result_schema import ResultSchema
 from app.crud.store_result import save_analysis_result
+from app.feature_extraction.video_features import extract_video_features
+from app.utils.llm_analysis import analyze_video_with_llm
 from app.utils.logger import logger
 
 router = APIRouter()
@@ -15,25 +17,35 @@ async def analyze_video(file: UploadFile = File(...)):
         Endpoint to upload and analyze the given video.
     """
 
-    # Currently only uploads the video and returns the URL.
     try:
+        # Save the uploaded file to a temporary location
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
             content = await file.read()
             temp_file.write(content)
             temp_file_path = temp_file.name
         
+        # Upload video to Cloudinary
         document_url = upload_video(temp_file_path)
         logger.info(f"Video uploaded to Cloudinary: {document_url}")
+
+        # Extract image features
+        features = extract_video_features(temp_file_path)
+
+        # Get the (label, confidence, reason) with the help of LLM + video features
+        label, confidence, reason = analyze_video_with_llm(temp_file_path, features)
 
         result = ResultSchema(
             user_id="example_user_id",
             document_type="video",
-            label="example_label",
+            label=label,
             document_url=document_url,
-            confidence=0.95,
-            reason="example_reason"
+            confidence=confidence,
+            reason=reason
         )
 
+        logger.info(f"Analysis result: {result}")
+
+        # Save the analysis result to the database
         await save_analysis_result(result, "video")
         return result
     

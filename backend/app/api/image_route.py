@@ -1,13 +1,12 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from transformers import pipeline
 import tempfile
 import os
 
 from app.core.cloudinary_client import upload_image
 from app.schemas.result_schema import ResultSchema
 from app.crud.store_result import save_analysis_result
-from app.utils.image_features import extract_image_features
-from app.utils.llm_reason import analyze_with_llm
+from app.feature_extraction.image_features import extract_image_features
+from app.utils.llm_analysis import analyze_image_with_llm
 from app.utils.logger import logger
 
 router = APIRouter()
@@ -32,8 +31,8 @@ async def analyze_image(file: UploadFile = File(...)):
         # Extract image features
         features = extract_image_features(temp_file_path)
 
-        # Generate reason using LLM
-        label, confidence, reason = analyze_with_llm(temp_file_path, features)
+        # Get the (label, confidence, reason) with the help of LLM + image features
+        label, confidence, reason = analyze_image_with_llm(temp_file_path, features)
 
         result = ResultSchema(
             user_id="example_user_id",

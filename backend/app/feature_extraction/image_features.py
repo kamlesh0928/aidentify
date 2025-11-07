@@ -10,12 +10,15 @@ def extract_image_features(image_path: str) -> dict:
         Extracts various features from an image located at image_path.
     """
 
+    # Load the image file using OpenCV
     image = cv2.imread(image_path)
 
+    # Validate that the image is accessible
     if (image is None):
         logger.error(f"Image not found or unable to read at {image_path}")
         raise ValueError("Image not found or unable to read.")
 
+    # Convert image to grayscale for structural (edge/noise) analysis
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     # Edge density using Canny edge detector
@@ -29,6 +32,7 @@ def extract_image_features(image_path: str) -> dict:
     hsv = color.rgb2hsv(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     hue_entropy = shannon_entropy(hsv[:, :, 0])
 
+    # Compile all features into a dictionary
     features = {
         "edge_density": edge_density,
         "noise_level": noise_level,
@@ -36,5 +40,4 @@ def extract_image_features(image_path: str) -> dict:
     }
 
     logger.info(f"Extracted features from image {image_path}: {features}")
-
     return features
