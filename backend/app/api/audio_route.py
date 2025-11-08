@@ -5,6 +5,8 @@ import os
 from app.core.cloudinary_client import upload_audio
 from app.schemas.result_schema import ResultSchema
 from app.crud.store_result import save_analysis_result
+from app.feature_extraction.audio_features import extract_audio_features
+from app.utils.llm_analysis import analyze_audio_with_llm
 from app.utils.logger import logger
 
 router = APIRouter()
@@ -12,33 +14,44 @@ router = APIRouter()
 @router.post("/analyze")
 async def analyze_audio(file: UploadFile = File(...)):
     """
-        Endpoint to upload and analyze the given audio.
+        Endpoint to upload and analyze the given audio file.
         Only .mp3 and .wav formats are supported.
     """
 
-    # Currently only uploads the audio and returns the URL.
     try:
+        # Save the uploaded file to a temporary location
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
             content = await file.read()
             temp_file.write(content)
             temp_file_path = temp_file.name
         
+        # Upload audio to Cloudinary
         document_url = upload_audio(temp_file_path)
         logger.info(f"Audio uploaded to Cloudinary: {document_url}")
+
+        # Extract audio features
+        features = extract_audio_features(temp_file_path)
+
+        # Get the (label, confidence, reason) with the help of LLM + audio features
+        label, confidence, reason = analyze_audio_with_llm(temp_file_path, features)
 
         result = ResultSchema(
             user_id="example_user_id",
             document_type="audio",
-            label="example_label",
+            label=label,
             document_url=document_url,
-            confidence=0.95,
-            reason="example_reason"
+            confidence=confidence,
+            reason=reason
         )
 
+        logger.info(f"Analysis result: {result}")
+
+        # Save the analysis result to the database
         await save_analysis_result(result, "audio")
         return result
     
     except Exception as e:
+        logger.error(f"Error in uploading or analyzing audio: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
     
     finally:
