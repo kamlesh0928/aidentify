@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Sora, Poppins } from "next/font/google";
+import { ThemeProvider } from "../components/theme-provider";
 import "./globals.css";
 
 const sora = Sora({
@@ -28,7 +29,14 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head />
       <body className={`${sora.variable} ${poppins.variable} antialiased`}>
-        {children}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
