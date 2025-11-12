@@ -1,6 +1,7 @@
+import React from "react";
 import clsx from "clsx";
 
-interface SidebarItemProps {
+interface Props {
     filename: string;
     result: string;
     isSelected?: boolean;
@@ -12,19 +13,17 @@ export default function SidebarItem({
     result,
     isSelected = false,
     onSelect,
-}: SidebarItemProps) {
-    const resultStyles =
-        result === "AI"
-            ? "bg-red-500/20 text-red-400 border-red-500/30"
-            : "bg-green-500/20 text-green-400 border-green-500/30";
+}: Props) {
+    const badge = result === "AI"
+        ? "bg-red-500/20 text-red-400 border-red-500/30"
+        : "bg-green-500/20 text-green-400 border-green-500/30";
 
     return (
         <button
             onClick={onSelect}
             className={clsx(
-                "w-full text-left p-3 rounded-lg border transition-all duration-200",
+                "w-full text-left p-3 rounded-lg border transition-all",
                 "hover:bg-sidebar-accent/50 hover:border-sidebar-accent/50",
-                "group",
                 isSelected
                     ? "bg-sidebar-accent/40 border-sidebar-accent text-sidebar-accent-foreground shadow-sm"
                     : "bg-sidebar/50 border-sidebar-border"
@@ -37,16 +36,12 @@ export default function SidebarItem({
                 <span
                     className={clsx(
                         "px-2.5 py-0.5 text-xs font-semibold rounded-full border",
-                        resultStyles,
-                        "transition-all duration-300 group-hover:scale-110"
+                        badge
                     )}
                 >
                     {result}
                 </span>
             </div>
-            <p className="text-xs text-sidebar-foreground/60 mt-1">
-                {result === "AI" ? "AI-Generated Content" : "Verified Real"}
-            </p>
         </button>
     );
 }
