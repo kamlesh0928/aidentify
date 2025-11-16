@@ -1,15 +1,12 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { useEffect } from "react";
+import { useEffect, ReactNode } from "react";
 import { redirect, RedirectType } from "next/navigation";
-import Sidebar from "@/components/Sidebar/Sidebar";
+import Sidebar from "@/components/sidebar/Sidebar";
+import { DashboardProvider } from "@/components/dashboard/DashboardProvider";
 
-export default function MainLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function MainLayout({ children }: { children: ReactNode }) {
   const { user } = useUser();
 
   useEffect(() => {
@@ -17,12 +14,14 @@ export default function MainLayout({
       // If user does not exist redirect him to "/"
       redirect("/", RedirectType.replace);
     }
-  });
+  }, [user]);
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto p-6">{children}</main>
-    </div>
+    <DashboardProvider>
+      <div className="flex h-screen bg-background text-foreground">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+      </div>
+    </DashboardProvider>
   );
 }

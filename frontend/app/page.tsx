@@ -15,7 +15,7 @@ export default function HomePage() {
       // If user exist redirect him to "/app"
       redirect("/app", RedirectType.replace);
     }
-  });
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-center text-foreground px-6">
