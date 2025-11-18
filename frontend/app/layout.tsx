@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import {
-  ClerkProvider
-} from '@clerk/nextjs'
+import { ClerkProvider } from "@clerk/nextjs";
 import { Sora, Poppins } from "next/font/google";
 import { ThemeProvider } from "../components/theme-provider";
+import { Toaster } from "react-hot-toast";
 import "./globals.css";
 
 const sora = Sora({
@@ -33,6 +32,7 @@ export default function RootLayout({
       <html lang="en" suppressHydrationWarning>
         <head />
         <body className={`${sora.variable} ${poppins.variable} antialiased`}>
+          <Toaster position="top-center" />
           <ThemeProvider
             attribute="class"
             defaultTheme="system"

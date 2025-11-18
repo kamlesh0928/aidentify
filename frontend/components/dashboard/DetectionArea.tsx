@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import axios from "axios";
 import {
   Paperclip,
   Send,
@@ -11,131 +12,148 @@ import {
 } from "lucide-react";
 import { useDashboard } from "@/components/dashboard/DashboardProvider";
 import { useDropzone } from "react-dropzone";
+import toast from "react-hot-toast";
 
 interface Message {
   id: string;
   role: "user" | "aidentify";
-  content: string;
-  file?: File;
-  type: "image" | "video" | "audio" | null;
+  file: File;
+  type: "image" | "video" | "audio";
   result?: "AI" | "Real";
   confidence?: number;
 }
+
+const SERVER_URL = "http://localhost:5001";
 
 export default function DetectionArea() {
   const { selectedChatId, chats, addMessageToChat, updateChatResult } =
     useDashboard();
 
-  const [input, setInput] = useState("");
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const selectedChat = chats.find((c) => c.id === selectedChatId);
-  const messages = selectedChat?.messages ?? [];
+  const messages: Message[] = (selectedChat?.messages as Message[]) ?? [];
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  useEffect(() => {
-    const textarea = inputRef.current;
+  const acceptedTypes = {
+    "image/*": [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"],
+    "video/*": [".mp4", ".webm", ".ogg", ".mov", ".avi"],
+    "audio/mpeg": [".mp3"],
+    "audio/wav": [".wav"],
+  };
 
-    if (!textarea) {
+  const onDrop = (acceptedFiles: File[], rejectedFiles: any[]) => {
+    if (rejectedFiles.length > 0) {
+      toast.error("Unsupported file. Only images, videos, MP3 & WAV allowed.");
       return;
     }
+    if (acceptedFiles[0]) setAttachedFile(acceptedFiles[0]);
+  };
 
-    textarea.style.height = "auto";
-    textarea.style.height = `${textarea.scrollHeight}px`;
-  }, [input]);
-
-  const onDrop = (files: File[]) => files[0] && setAttachedFile(files[0]);
-
-  const { getRootProps, getInputProps } = useDropzone({
+  const { getRootProps, getInputProps, open } = useDropzone({
     onDrop,
+    accept: acceptedTypes,
     multiple: false,
     noClick: true,
-    noKeyboard: true,
   });
 
-  const sendMessage = async () => {
-    if (!selectedChatId || (!input.trim() && !attachedFile)) {
-      return;
-    }
+  const handleSubmit = async () => {
+    if (!selectedChatId || !attachedFile) return;
+
+    const fileType = attachedFile.type;
+    const type: "image" | "video" | "audio" = fileType.startsWith("video/")
+      ? "video"
+      : fileType.startsWith("audio/")
+      ? "audio"
+      : "image";
 
     const userMsg: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input.trim() || "",
-      file: attachedFile ?? undefined,
-      type: attachedFile
-        ? attachedFile.type.startsWith("image/")
-          ? "image"
-          : attachedFile.type.startsWith("video/")
-          ? "video"
-          : "audio"
-        : null,
+      file: attachedFile,
+      type,
     };
 
     addMessageToChat(selectedChatId, userMsg);
-    setInput("");
     setAttachedFile(null);
     setIsAnalyzing(true);
 
     const formData = new FormData();
-    if (attachedFile) {
-      formData.append("file", attachedFile);
+    formData.append("file", attachedFile);
+
+    const endpoint =
+      type === "image"
+        ? "/backend/api/image/analyze"
+        : type === "video"
+        ? "/backend/api/video/analyze"
+        : "/backend/api/audio/analyze";
+
+    try {
+      console.log("Uploading to:", endpoint);
+      const response = await axios.post(endpoint, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+        timeout: 300000,
+      });
+
+      console.log("Success:", response.data);
+
+      const aidentifyMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "aidentify",
+        file: attachedFile,
+        type,
+        result: response.data.result,
+        confidence: response.data.confidence,
+      };
+
+      addMessageToChat(selectedChatId, aidentifyMsg);
+      updateChatResult(
+        selectedChatId,
+        response.data.result,
+        response.data.confidence
+      );
+    } catch (error: any) {
+      console.error("Upload failed:", error);
+      if (error.code === "ERR_NETWORK") {
+        toast.error("Backend not reachable. Is it running?");
+      } else if (error.response) {
+        toast.error(
+          `Error ${error.response.status}: ${
+            error.response.data?.detail || "Unknown"
+          }`
+        );
+      } else {
+        toast.error("Upload failed");
+      }
+    } finally {
+      setIsAnalyzing(false);
     }
-
-    console.log(userMsg);
-
-    // Connect backend
-    // try {
-    //   const res = await fetch("/api/detect", {
-    //     method: "POST",
-    //     body: formData,
-    //   });
-    //   const data = await res.json();
-
-    //   const assistantMsg: Message = {
-    //     id: (Date.now() + 1).toString(),
-    //     role: "assistant",
-    //     content: "",
-    //     type: "text",
-    //     result: data.result,
-    //     confidence: data.confidence,
-    //   };
-    //   addMessageToChat(selectedChatId, assistantMsg);
-    //   updateChatResult(selectedChatId, data.result, data.confidence);
-    // } catch {
-    //   addMessageToChat(selectedChatId, {
-    //     id: (Date.now() + 1).toString(),
-    //     role: "assistant",
-    //     content: "Sorry, something went wrong. Try again.",
-    //     type: "text",
-    //   });
-    // } finally {
-    //   setIsAnalyzing(false);
-    // }
   };
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8">
-        <div className="max-w-4xl mx-auto space-y-6">
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto px-4 py-6">
+        <div className="max-w-4xl mx-auto space-y-8">
           {messages.length === 0 && (
-            <div className="text-center py-20">
-              <h2 className="text-2xl font-bold text-foreground mb-2">
-                Start a New Detection
+            <div className="text-center py-24">
+              <div className="w-28 h-28 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+                <Paperclip className="w-14 h-14 text-primary" />
+              </div>
+              <h2 className="text-3xl font-bold text-foreground mb-3">
+                Detect AI in Media
               </h2>
-              <p className="text-foreground/60">
-                Upload an image, video, audio or type a message.
+              <p className="text-foreground/60 text-lg">
+                Upload an image, video, or audio file (.mp3, .wav)
               </p>
             </div>
           )}
 
-          {/* Messages */}
           {messages.map((msg) => (
             <div
               key={msg.id}
@@ -145,7 +163,7 @@ export default function DetectionArea() {
             >
               <div
                 className={`
-                  max-w-lg p-4 rounded-2xl shadow-sm border
+                  max-w-xl p-6 rounded-2xl shadow-lg border
                   ${
                     msg.role === "user"
                       ? "bg-primary/10 border-primary/20"
@@ -153,80 +171,59 @@ export default function DetectionArea() {
                   }
                 `}
               >
-                {/* User */}
                 {msg.role === "user" ? (
-                  <>
-                    {msg.content && <p className="mb-2">{msg.content}</p>}
-                    {msg.file && (
-                      <div className="mt-3">
-                        {msg.type === "image" && (
-                          <img
-                            src={URL.createObjectURL(msg.file)}
-                            alt="uploaded"
-                            className="max-w-xs rounded-lg shadow"
-                          />
-                        )}
-                        {msg.type === "video" && (
-                          <video
-                            controls
-                            className="max-w-xs rounded-lg shadow"
-                          >
-                            <source
-                              src={URL.createObjectURL(msg.file)}
-                              type={msg.file.type}
-                            />
-                          </video>
-                        )}
-                        {msg.type === "audio" && (
-                          <audio controls className="w-full">
-                            <source
-                              src={URL.createObjectURL(msg.file)}
-                              type={msg.file.type}
-                            />
-                          </audio>
-                        )}
-                      </div>
+                  // User: Show media
+                  <div>
+                    {msg.type === "image" && (
+                      <img
+                        src={URL.createObjectURL(msg.file)}
+                        alt="Upload"
+                        className="max-w-md rounded-xl shadow-xl"
+                      />
                     )}
-                  </>
+                    {msg.type === "video" && (
+                      <video controls className="max-w-md rounded-xl shadow-xl">
+                        <source src={URL.createObjectURL(msg.file)} />
+                      </video>
+                    )}
+                    {msg.type === "audio" && (
+                      <audio controls className="w-full">
+                        <source src={URL.createObjectURL(msg.file)} />
+                      </audio>
+                    )}
+                  </div>
                 ) : (
-                  /* AIdentify */
-                  <>
-                    {msg.result ? (
-                      <div className="flex items-center gap-3">
-                        {msg.result === "AI" ? (
-                          <XCircle className="w-6 h-6 text-red-400" />
-                        ) : (
-                          <CheckCircle className="w-6 h-6 text-green-400" />
-                        )}
-                        <p className="font-semibold">
-                          {msg.result === "AI"
-                            ? "AI‑Generated"
-                            : "Real / Human"}
-                        </p>
-                      </div>
+                  // aidentify: Show result
+                  <div className="flex items-center gap-4">
+                    {msg.result === "AI" ? (
+                      <XCircle className="w-10 h-10 text-red-500" />
                     ) : (
-                      <p>{msg.content}</p>
+                      <CheckCircle className="w-10 h-10 text-green-500" />
                     )}
-                    {msg.confidence !== undefined && (
-                      <p className="mt-1 text-sm text-foreground/70">
+                    <div>
+                      <p className="text-2xl font-bold">
+                        {msg.result === "AI"
+                          ? "AI-Generated"
+                          : "Real / Human-Made"}
+                      </p>
+                      <p className="text-foreground/70">
                         Confidence:{" "}
-                        <span className="font-bold text-primary">
+                        <span className="font-bold text-primary text-xl">
                           {msg.confidence}%
                         </span>
                       </p>
-                    )}
-                  </>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
           ))}
 
-          {/* Typing indicator */}
           {isAnalyzing && (
             <div className="flex justify-start">
-              <div className="flex items-center gap-2 px-4 py-3 bg-card rounded-2xl shadow-sm border border-sidebar-border">
-                <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                <span className="text-foreground/70">Analyzing…</span>
+              <div className="px-6 py-4 bg-card rounded-2xl border border-sidebar-border flex items-center gap-3">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                <span className="text-lg">Analyzing your media...</span>
               </div>
             </div>
           )}
@@ -235,75 +232,61 @@ export default function DetectionArea() {
         </div>
       </div>
 
-      {/* Input bar */}
-      <div className="border-t border-sidebar-border bg-background/90 backdrop-blur-sm">
-        <div className="max-w-4xl mx-auto p-4">
-          {/* Attached file preview */}
+      {/* Fixed Bottom Input */}
+      <div className="border-t border-sidebar-border bg-background/95 backdrop-blur-xl">
+        <div className="max-w-4xl mx-auto p-6">
           {attachedFile && (
-            <div className="mb-2 flex items-center gap-2 bg-sidebar px-3 py-1.5 rounded-full text-xs text-foreground/80 shadow-sm">
-              <Paperclip className="w-4 h-4" />
-              <span className="truncate max-w-48">{attachedFile.name}</span>
+            <div className="mb-4 flex items-center justify-between bg-sidebar px-5 py-3 rounded-2xl">
+              <span className="text-foreground/80 truncate max-w-md">
+                {attachedFile.name}
+              </span>
               <button
                 onClick={() => setAttachedFile(null)}
-                className="ml-1 hover:text-red-400"
+                className="hover:text-red-400"
               >
-                <X className="w-4 h-4" />
+                <X className="w-6 h-6" />
               </button>
             </div>
           )}
 
-          <div className="flex items-end gap-2 bg-card rounded-2xl border border-sidebar-border p-2 shadow-sm">
-            <label className="cursor-pointer p-2 rounded-full hover:bg-sidebar-accent/20 transition-colors">
-              <Paperclip className="w-5 h-5 text-foreground/60" />
+          <div className="flex items-center gap-4 bg-card rounded-2xl border border-sidebar-border p-4 shadow-xl">
+            <label className="cursor-pointer p-4 rounded-full hover:bg-sidebar-accent/20 transition">
+              <Paperclip className="w-7 h-7 text-foreground/70" />
               <input
                 type="file"
                 className="hidden"
-                accept="image/*,video/*,audio/*"
+                accept="image/*,video/*,audio/mpeg,audio/wav"
                 onChange={(e) =>
                   e.target.files?.[0] && setAttachedFile(e.target.files[0])
                 }
               />
             </label>
 
-            {/* Textarea */}
             <div className="flex-1" {...getRootProps()}>
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                  }
-                }}
-                placeholder="Upload media…"
-                className="w-full resize-none bg-transparent text-foreground placeholder-foreground/50 outline-none max-h-32 overflow-y-auto pr-10"
-                rows={1}
-              />
               <input {...getInputProps()} />
+              <button
+                onClick={open}
+                className="w-full text-left px-6 py-4 text-foreground/60 hover:text-foreground text-lg font-medium"
+              >
+                Drop or click to upload image, video, or audio
+              </button>
             </div>
 
-            {/* Send Message */}
             <button
-              onClick={sendMessage}
-              disabled={isAnalyzing || !attachedFile}
+              onClick={handleSubmit}
+              disabled={!attachedFile || isAnalyzing}
               className={`
-                p-2 rounded-full transition-all
+                p-4 rounded-full transition-all shadow-lg
                 ${
-                  isAnalyzing || !attachedFile
-                    ? "text-foreground/40 cursor-not-allowed"
-                    : "bg-primary text-primary-foreground hover:cursor-pointer hover:bg-primary/90 shadow-md"
+                  attachedFile && !isAnalyzing
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "bg-muted text-muted-foreground cursor-not-allowed"
                 }
               `}
             >
-              <Send className="w-5 h-5" />
+              <Send className="w-6 h-6" />
             </button>
           </div>
-
-          <p className="mt-2 text-center text-xs text-foreground/50">
-            Files are encrypted and deleted after analysis.
-          </p>
         </div>
       </div>
     </div>

@@ -13,9 +13,8 @@ interface Chat {
 interface Message {
   id: string;
   role: "user" | "aidentify";
-  content: string;
-  file?: File;
-  type: "image" | "video" | "audio" | null;
+  file: File; // Always required now
+  type: "image" | "video" | "audio";
   result?: "AI" | "Real";
   confidence?: number;
 }
@@ -31,6 +30,7 @@ interface DashboardContextType {
     confidence: number
   ) => void;
   addMessageToChat: (chatId: string, message: Message) => void;
+  deleteChat: (id: string) => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(
@@ -77,6 +77,14 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const deleteChat = (id: string) => {
+    setChats((prev) => prev.filter((c) => c.id !== id));
+    if (selectedChatId === id) {
+      const remaining = chats.filter((c) => c.id !== id);
+      setSelectedChatId(remaining[0]?.id || null);
+    }
+  };
+
   return (
     <DashboardContext.Provider
       value={{
@@ -86,6 +94,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         selectChat,
         updateChatResult,
         addMessageToChat,
+        deleteChat,
       }}
     >
       {children}
