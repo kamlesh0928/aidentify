@@ -1,4 +1,5 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, Form, File, HTTPException
+from typing import Annotated
 import tempfile
 import os
 
@@ -11,8 +12,12 @@ from app.utils.logger import logger
 
 router = APIRouter()
 
-@router.post("/analyze")
-async def analyze_image(file: UploadFile = File(...)):
+@router.post("/analyze", response_model=ResultSchema)
+async def analyze_image(
+    email: Annotated[str, Form()], 
+    mime_type: Annotated[str, Form()], 
+    file: UploadFile = File(...)
+):
     """
         Endpoint to upload and analyze the given image.
     """
@@ -32,10 +37,10 @@ async def analyze_image(file: UploadFile = File(...)):
         features = extract_image_features(temp_file_path)
 
         # Get the (label, confidence, reason) with the help of LLM + image features
-        label, confidence, reason = analyze_image_with_llm(temp_file_path, features)
+        label, confidence, reason = analyze_image_with_llm(temp_file_path, features, mime_type)
 
         result = ResultSchema(
-            user_id="example_user_id",
+            user_email=email,
             document_type="image",
             label=label,
             document_url=document_url,

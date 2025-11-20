@@ -13,7 +13,7 @@ async def save_analysis_result(result: ResultSchema, file_type: str):
         # Determine document structure based on file type
         if (file_type == "image"):      # Save image result
             document = {
-                "user_id": result.user_id,
+                "user_email": result.user_email,
                 "document_type": "image",
                 "label": result.label,
                 "document_url": result.document_url,
@@ -28,7 +28,7 @@ async def save_analysis_result(result: ResultSchema, file_type: str):
         
         elif (file_type == "video"):    # Save video result
             document = {
-                "user_id": result.user_id,
+                "user_email": result.user_email,
                 "document_type": "video",
                 "label": result.label,
                 "document_url": result.document_url,
@@ -43,7 +43,7 @@ async def save_analysis_result(result: ResultSchema, file_type: str):
         
         elif (file_type == "audio"):    # Save audio result
             document = {
-                "user_id": result.user_id,
+                "user_email": result.user_email,
                 "document_type": "audio",
                 "label": result.label,
                 "document_url": result.document_url,

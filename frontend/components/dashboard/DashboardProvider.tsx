@@ -13,7 +13,7 @@ interface Chat {
 interface Message {
   id: string;
   role: "user" | "aidentify";
-  file: File; // Always required now
+  file: File;
   type: "image" | "video" | "audio";
   result?: "AI" | "Real";
   confidence?: number;
@@ -43,7 +43,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     { id: "456", name: "456", result: "Real", messages: [] },
   ]);
 
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>("123");
 
   const addChat = () => {
     const newId = Date.now().toString();
@@ -51,6 +51,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       ...prev,
       { id: newId, name: newId.slice(-6), messages: [] },
     ]);
+
+    setSelectedChatId(newId);
   };
 
   const selectChat = (id: string) => setSelectedChatId(id);

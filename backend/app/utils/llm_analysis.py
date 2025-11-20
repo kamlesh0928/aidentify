@@ -2,26 +2,22 @@ import google.generativeai as genai
 import time
 
 from app.config import Config
-from app.utils.detect_mime_type import detect_mime_type
 from app.utils.parse_llm_response import parse_llm_response
 from app.utils.logger import logger
 
 genai.configure(api_key=Config.GEMINI_API_KEY)
 model = genai.GenerativeModel("gemini-2.5-pro")
 
-def analyze_image_with_llm(temp_file_path: str, features: dict) -> str:
+def analyze_image_with_llm(temp_file_path: str, features: dict, mime_type: str) -> str:
     """
-        Analyzes the image using a large language model(Gemini) to classify it as 'AI Generated' or 'Not AI Generated'.
+        Analyzes the image using a large language model(Gemini) to classify it as 'AI' or 'Real'.
     """
-
-    # Detect the MIME type of the image
-    mime_type = detect_mime_type(temp_file_path)
 
     # Upload the image to Gemini
     uploaded_image = genai.upload_file(temp_file_path, mime_type=mime_type)
 
     prompt = f"""
-        You are an expert visual content analyst. Your task is to determine whether the provided image is 'AI Generated' or 'Not AI Generated'.
+        You are an expert visual content analyst. Your task is to determine whether the provided image is 'AI' or 'Real'.
 
         You are given:
         - An input image file (uploaded separately).
@@ -30,13 +26,13 @@ def analyze_image_with_llm(temp_file_path: str, features: dict) -> str:
 
         ### Instructions:
         1. Carefully analyze the image and the provided features.
-        2. Decide whether the image is **AI Generated** or **Not AI Generated**.
+        2. Decide whether the image is **AI** or **Real**.
         3. Estimate your **confidence score** between 0 and 1.
         4. Provide a **concise reason (≤ 30 words)** supporting your classification.
 
         ### Response Format (strictly follow this JSON structure):
         {{
-        "label": "AI Generated" | "Not AI Generated",
+        "label": "AI" | "Real",
         "confidence": float,  # between 0 and 1
         "reason": "string (≤ 30 words)"
         }}
@@ -64,12 +60,11 @@ def analyze_image_with_llm(temp_file_path: str, features: dict) -> str:
             genai.delete_file(uploaded_image)
             logger.info("Cleaned up uploaded image from Gemini.")
 
-def analyze_video_with_llm(temp_file_path: str, features: dict) -> str:
+def analyze_video_with_llm(temp_file_path: str, features: dict, mime_type: str) -> str:
     """
-        Analyzes the video using a large language model(Gemini) to classify it as 'AI Generated' or 'Not AI Generated'.
+        Analyzes the video using a large language model(Gemini) to classify it as 'AI' or 'Real'.
     """
 
-    mime_type = detect_mime_type(temp_file_path)    # Detect the MIME type of the video
     uploaded_video = None
 
     try:
@@ -82,7 +77,7 @@ def analyze_video_with_llm(temp_file_path: str, features: dict) -> str:
             uploaded_video = genai.get_file(uploaded_video.name)
 
         prompt = f"""
-            You are an expert visual content analyst. Your task is to determine whether the provided image is 'AI Generated' or 'Not AI Generated'.
+            You are an expert visual content analyst. Your task is to determine whether the provided image is 'AI' or 'Real'.
 
             You are given:
             - An input video file (uploaded separately).
@@ -91,13 +86,13 @@ def analyze_video_with_llm(temp_file_path: str, features: dict) -> str:
 
             ### Instructions:
             1. Carefully analyze the image and the provided features.
-            2. Decide whether the video is **AI Generated** or **Not AI Generated**.
+            2. Decide whether the video is **AI** or **Real**.
             3. Estimate your **confidence score** between 0 and 1.
             4. Provide a **concise reason (≤ 30 words)** supporting your classification.
 
             ### Response Format (strictly follow this JSON structure):
             {{
-            "label": "AI Generated" | "Not AI Generated",
+            "label": "AI" | "Real",
             "confidence": float,  # between 0 and 1
             "reason": "string (≤ 30 words)"
             }}
@@ -124,12 +119,11 @@ def analyze_video_with_llm(temp_file_path: str, features: dict) -> str:
             genai.delete_file(uploaded_video)
             logger.info("Cleaned up uploaded video from Gemini.")
 
-def analyze_audio_with_llm(temp_file_path: str, features: dict) -> str:
+def analyze_audio_with_llm(temp_file_path: str, features: dict, mime_type: str) -> str:
     """
-        Analyzes the audio using a large language model(Gemini) to classify it as 'AI Generated' or 'Not AI Generated'.
+        Analyzes the audio using a large language model(Gemini) to classify it as 'AI' or 'Real'.
     """
 
-    mime_type = detect_mime_type(temp_file_path)   # Detect the MIME type of the audio
     uploaded_audio = None
 
     try:
@@ -139,7 +133,7 @@ def analyze_audio_with_llm(temp_file_path: str, features: dict) -> str:
         prompt = f"""
             You are an expert audio forensics and content authenticity analyst.
 
-            Your task is to determine whether the provided audio file was **AI Generated** or **Not AI Generated**.
+            Your task is to determine whether the provided audio file was **AI** or **Real**.
 
             You are given:
             - An input audio file (uploaded separately)
@@ -160,14 +154,14 @@ def analyze_audio_with_llm(temp_file_path: str, features: dict) -> str:
 
             ### Decision Task:
             Determine whether the audio is:
-            - **"AI Generated"** → if it shows synthetic or algorithmic characteristics, even if realistic.
-            - **"Not AI Generated"** → if it appears to be a naturally recorded or unaltered real-world sound.
+            - **"AI"** → if it shows synthetic or algorithmic characteristics, even if realistic.
+            - **"Real"** → if it appears to be a naturally recorded or unaltered real-world sound.
 
             ---
 
             ### Response Format (strict JSON only):
             {{
-            "label": "AI Generated" | "Not AI Generated",
+            "label": "AI" | "Real",
             "confidence": float,  # between 0 and 1
             "reason": "string (≤ 30 words, explaining the key cues)"
             }}

@@ -1,9 +1,9 @@
 from pydantic import BaseModel
 
 class ResultSchema(BaseModel):
-    user_id: str
+    user_email: str
     document_type: str  # [audio, image, video]
-    label: str          # [AI Generated, Human Generated]
+    label: str          # [AI, Real]
     document_url: str
     confidence: float   # [0.00, 1.00]
     reason: str
