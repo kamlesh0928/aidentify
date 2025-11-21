@@ -1,69 +1,40 @@
 "use client";
 
-import React from "react";
-import clsx from "clsx";
-import { Trash2 } from "lucide-react";
-import { useDashboard } from "@/components/dashboard/DashboardProvider";
+import { MessageSquare } from "lucide-react";
+import { Chat } from "@/components/dashboard/DashboardProvider";
 
-interface Props {
-  chatId: string;
-  filename: string;
-  result: string;
+interface SidebarItemProps {
+  chat: Chat;
   isSelected?: boolean;
+  onClick: () => void;
 }
 
-export default function SidebarItem({
-  chatId,
-  filename,
-  result,
-  isSelected = false,
-}: Props) {
-  const { selectChat, deleteChat } = useDashboard();
-
-  const badge =
-    result === "AI"
-      ? "bg-red-500/20 text-red-400 border-red-500/30"
-      : result === "Real"
-      ? "bg-green-500/20 text-green-400 border-green-500/30"
-      : "bg-muted text-muted-foreground";
-
+export function SidebarItem({ chat, isSelected, onClick }: SidebarItemProps) {
   return (
-    <div className="group relative">
-      <button
-        onClick={() => selectChat(chatId)}
-        className={clsx(
-          "w-full text-left p-3 rounded-lg border transition-all flex items-center justify-between",
-          "hover:bg-sidebar-accent/50 hover:border-sidebar-accent/50",
+    <button
+      onClick={onClick}
+      className={`w-full group flex items-center gap-3 p-3 rounded-xl transition-all duration-200 
+        ${
           isSelected
-            ? "bg-sidebar-accent/40 border-sidebar-accent text-sidebar-accent-foreground shadow-sm"
-            : "bg-sidebar/50 border-sidebar-border"
-        )}
+            ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
+            : "text-foreground/60 hover:bg-sidebar-accent hover:text-foreground"
+        }`}
+    >
+      <div
+        className={`p-2 rounded-lg transition-colors ${
+          isSelected
+            ? "bg-primary/20"
+            : "bg-sidebar-accent/50 group-hover:bg-sidebar-accent"
+        }`}
       >
-        <h4 className="font-medium text-sidebar-foreground truncate max-w-[120px]">
-          {filename}
-        </h4>
-        <span
-          className={clsx(
-            "px-2.5 py-0.5 text-xs font-semibold rounded-full border",
-            badge
-          )}
-        >
-          {result}
-        </span>
-      </button>
+        <MessageSquare className="w-4 h-4" />
+      </div>
 
-      {/* Delete Button (appears on hover) */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          if (confirm("Delete this detection?")) {
-            deleteChat(chatId);
-          }
-        }}
-        className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded hover:bg-red-500/20"
-      >
-        <Trash2 className="w-4 h-4 text-red-400" />
-      </button>
-    </div>
+      <div className="flex-1 text-left overflow-hidden">
+        <h4 className="font-medium truncate text-sm">
+          {chat.name || "Untitled Chat"}
+        </h4>
+      </div>
+    </button>
   );
 }

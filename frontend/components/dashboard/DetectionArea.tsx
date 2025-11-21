@@ -19,7 +19,8 @@ import toast from "react-hot-toast";
 interface Message {
   id: string;
   role: "user" | "aidentify";
-  file: File;
+  file?: File;
+  content?: string;
   type: "image" | "video" | "audio";
   result?: "AI" | "Real";
   label?: string;
@@ -27,11 +28,11 @@ interface Message {
   reason?: string;
 }
 
-const SERVER_URL = "http://localhost:5001";
+const SERVER_URL = process.env.NEXT_PUBLIC_NEXT_SERVER_URL;
 
 export default function DetectionArea() {
   const { user } = useUser();
-  const { selectedChatId, chats, addMessageToChat, updateChatResult } =
+  const { selectedChatId, chats, refreshChats, selectChat, addMessageToChat } =
     useDashboard();
 
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
@@ -39,11 +40,23 @@ export default function DetectionArea() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const selectedChat = chats.find((c) => c.id === selectedChatId);
-  const messages: Message[] = (selectedChat?.messages as Message[]) ?? [];
+  const messages = (selectedChat?.messages || []) as unknown as Message[];
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const getMediaSource = (msg: Message) => {
+    if (msg.content) {
+      return msg.content;
+    }
+
+    if (msg.file) {
+      return URL.createObjectURL(msg.file);
+    }
+
+    return "";
+  };
 
   const acceptedTypes = {
     "image/*": [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"],
@@ -57,7 +70,10 @@ export default function DetectionArea() {
       toast.error("Unsupported file. Only images, videos, MP3 & WAV allowed.");
       return;
     }
-    if (acceptedFiles[0]) setAttachedFile(acceptedFiles[0]);
+
+    if (acceptedFiles[0]) {
+      setAttachedFile(acceptedFiles[0]);
+    }
   };
 
   const { getRootProps, getInputProps, open } = useDropzone({
@@ -68,11 +84,6 @@ export default function DetectionArea() {
   });
 
   const handleSubmit = async () => {
-    if (!selectedChatId) {
-      toast.error("No chat selected");
-      return;
-    }
-
     if (!attachedFile) {
       return;
     }
@@ -84,21 +95,16 @@ export default function DetectionArea() {
       ? "audio"
       : "image";
 
-    const userMsg: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      file: attachedFile,
-      type,
-    };
-
-    addMessageToChat(selectedChatId, userMsg);
-    setAttachedFile(null);
     setIsAnalyzing(true);
 
     const formData = new FormData();
     formData.append("file", attachedFile);
     formData.append("mime_type", mimeType);
     formData.append("email", user!.emailAddresses[0].emailAddress);
+
+    if (selectedChatId) {
+      formData.append("chat_id", selectedChatId);
+    }
 
     const endpoint =
       type === "image"
@@ -108,28 +114,43 @@ export default function DetectionArea() {
         : `${SERVER_URL}/api/audio/analyze`;
 
     try {
+      if (selectedChatId) {
+        const userMsg: Message = {
+          id: Date.now().toString(),
+          role: "user",
+          file: attachedFile,
+          type,
+        };
+        addMessageToChat(selectedChatId, userMsg);
+      }
+
       const response = await axios.post(endpoint, formData, {
         timeout: 300000, // 5 minutes timeout for the Client
       });
 
-      const backendData = response.data;
+      const data = response.data;
 
-      const isAI = backendData.label.toLowerCase().includes("ai");
-      const uiResult = isAI ? "AI" : "Real";
+      if (!selectedChatId) {
+        refreshChats();
+        selectChat(data.chat_id);
+      } else {
+        const isAI = data.ai_message.label?.toLowerCase().includes("ai");
 
-      const aidentifyMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "aidentify",
-        file: attachedFile,
-        type,
-        result: uiResult,
-        label: backendData.label,
-        confidence: backendData.confidence,
-        reason: backendData.reason,
-      };
+        const aiMsg: Message = {
+          id: data.ai_message.id,
+          role: "aidentify",
+          type: data.ai_message.type,
+          content: data.ai_message.content,
+          label: data.ai_message.label,
+          confidence: data.ai_message.confidence,
+          reason: data.ai_message.reason,
+          result: isAI ? "AI" : "Real",
+        };
 
-      addMessageToChat(selectedChatId, aidentifyMsg);
-      updateChatResult(selectedChatId, uiResult, backendData.confidence);
+        addMessageToChat(selectedChatId, aiMsg);
+      }
+
+      setAttachedFile(null);
     } catch (error: any) {
       console.error("Upload failed:", error);
       if (error.code === "ERR_NETWORK") {
@@ -152,7 +173,19 @@ export default function DetectionArea() {
     <div className="flex flex-col h-full bg-background">
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-4xl mx-auto space-y-8">
-          {messages.length === 0 && <div className="text-center py-24"></div>}
+          {messages.length === 0 && !isAnalyzing && (
+            <div className="text-center py-24">
+              <div className="w-28 h-28 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+                <Paperclip className="w-14 h-14 text-primary" />
+              </div>
+              <h2 className="text-3xl font-bold text-foreground mb-3">
+                Detect AI in Media
+              </h2>
+              <p className="text-foreground/60 text-lg">
+                Upload an image, video, or audio file (.mp3, .wav)
+              </p>
+            </div>
+          )}
 
           {messages.map((msg) => (
             <div
@@ -172,26 +205,28 @@ export default function DetectionArea() {
                 `}
               >
                 {msg.role === "user" ? (
+                  // User: Show media (Using helper function)
                   <div>
                     {msg.type === "image" && (
                       <img
-                        src={URL.createObjectURL(msg.file)}
+                        src={getMediaSource(msg)}
                         alt="Upload"
                         className="max-w-md rounded-xl shadow-xl"
                       />
                     )}
                     {msg.type === "video" && (
                       <video controls className="max-w-md rounded-xl shadow-xl">
-                        <source src={URL.createObjectURL(msg.file)} />
+                        <source src={getMediaSource(msg)} />
                       </video>
                     )}
                     {msg.type === "audio" && (
                       <audio controls className="w-full">
-                        <source src={URL.createObjectURL(msg.file)} />
+                        <source src={getMediaSource(msg)} />
                       </audio>
                     )}
                   </div>
                 ) : (
+                  // AI Response
                   <div className="flex flex-col gap-4">
                     <div className="flex items-center gap-4">
                       {msg.result === "AI" ? (
@@ -218,7 +253,6 @@ export default function DetectionArea() {
                       </div>
                     </div>
 
-                    {/* Display the Reason */}
                     {msg.reason && (
                       <div className="bg-background/50 p-4 rounded-xl border border-white/5 mt-2">
                         <div className="flex items-center gap-2 mb-1 text-sm text-foreground/60 uppercase font-semibold tracking-wider">
@@ -247,6 +281,7 @@ export default function DetectionArea() {
         </div>
       </div>
 
+      {/* Input Area */}
       <div className="border-t border-sidebar-border bg-background/95 backdrop-blur-xl">
         <div className="max-w-4xl mx-auto p-6">
           {attachedFile && (

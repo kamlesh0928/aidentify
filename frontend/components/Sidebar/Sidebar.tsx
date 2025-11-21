@@ -9,12 +9,12 @@ import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrow
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import HistoryIcon from "@mui/icons-material/History";
 
-import SidebarItem from "./SidebarItem";
+import { SidebarItem } from "./SidebarItem";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { useDashboard } from "../dashboard/DashboardProvider";
 
 export default function Sidebar() {
-  const { chats, selectedChatId, addChat, selectChat } = useDashboard();
+  const { chats, selectedChatId, createNewChat, selectChat } = useDashboard();
   const [isOpen, setIsOpen] = useState(true);
 
   const toggleSidebar = () => setIsOpen((prev) => !prev);
@@ -52,7 +52,7 @@ export default function Sidebar() {
         <Tooltip.Root>
           <Tooltip.Trigger asChild>
             <button
-              onClick={addChat} // Now adds new chat & selects it
+              onClick={createNewChat} // Now adds new chat & selects it
               className={`
                 flex w-full items-center justify-center rounded-xl font-medium
                 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground
@@ -122,10 +122,9 @@ export default function Sidebar() {
               {chats.map((chat) => (
                 <SidebarItem
                   key={chat.id}
-                  filename={chat.name}
-                  result={chat.result || "Pending"}
+                  chat={chat} // FIX: Pass the full chat object required by updated interface
                   isSelected={selectedChatId === chat.id}
-                  onSelect={() => selectChat(chat.id)}
+                  onClick={() => selectChat(chat.id)}
                 />
               ))}
             </div>

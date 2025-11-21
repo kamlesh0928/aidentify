@@ -1,73 +1,87 @@
 "use client";
 
-import { createContext, useState, useContext, ReactNode } from "react";
+import {
+  createContext,
+  useState,
+  useContext,
+  ReactNode,
+  useEffect,
+} from "react";
+import { useUser } from "@clerk/nextjs";
+import axios from "axios";
 
-interface Chat {
-  id: string;
-  name: string;
-  result?: "AI" | "Real";
-  confidence?: number;
-  messages: Message[];
-}
-
-interface Message {
+export interface Message {
   id: string;
   role: "user" | "aidentify";
-  file: File;
   type: "image" | "video" | "audio";
+  file?: File;
+  content?: string;
   result?: "AI" | "Real";
+  label?: string;
   confidence?: number;
+  reason?: string;
+}
+
+export interface Chat {
+  id: string;
+  name: string;
+  messages: Message[];
 }
 
 interface DashboardContextType {
   chats: Chat[];
   selectedChatId: string | null;
-  addChat: () => void;
+  createNewChat: () => void;
   selectChat: (id: string) => void;
-  updateChatResult: (
-    id: string,
-    result: "AI" | "Real",
-    confidence: number
-  ) => void;
   addMessageToChat: (chatId: string, message: Message) => void;
-  deleteChat: (id: string) => void;
+  refreshChats: () => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(
   undefined
 );
 
+const SERVER_URL = process.env.NEXT_PUBLIC_NEXT_SERVER_URL;
+
 export function DashboardProvider({ children }: { children: ReactNode }) {
-  const [chats, setChats] = useState<Chat[]>([
-    { id: "123", name: "123", result: "AI", messages: [] },
-    { id: "456", name: "456", result: "Real", messages: [] },
-  ]);
+  const { user } = useUser();
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
 
-  const [selectedChatId, setSelectedChatId] = useState<string | null>("123");
+  useEffect(() => {
+    if (user?.emailAddresses[0].emailAddress) {
+      fetchHistory();
+    }
+  }, [user]);
 
-  const addChat = () => {
-    const newId = Date.now().toString();
-    setChats((prev) => [
-      ...prev,
-      { id: newId, name: newId.slice(-6), messages: [] },
-    ]);
+  const fetchHistory = async () => {
+    try {
+      const email = user?.emailAddresses[0].emailAddress;
+      const response = await axios.get(
+        `${SERVER_URL}/api/chat/history?email=${email}`
+      );
 
-    setSelectedChatId(newId);
+      // Map backend response to frontend Chat object
+      const mappedChats: Chat[] = response.data.map((chat: any) => ({
+        id: chat._id,
+        name: chat.title,
+        messages: chat.messages.map((message: any) => ({
+          ...message,
+          result: message.label?.toLowerCase().includes("ai") ? "AI" : "Real",
+        })),
+      }));
+
+      setChats(mappedChats);
+    } catch (error) {
+      console.log("Failed to fetch history: ", error);
+    }
+  };
+
+  const createNewChat = () => {
+    setSelectedChatId(null);
   };
 
   const selectChat = (id: string) => setSelectedChatId(id);
-
-  const updateChatResult = (
-    id: string,
-    result: "AI" | "Real",
-    confidence: number
-  ) => {
-    setChats((prev) =>
-      prev.map((chat) =>
-        chat.id === id ? { ...chat, result, confidence } : chat
-      )
-    );
-  };
 
   const addMessageToChat = (chatId: string, message: Message) => {
     setChats((prev) =>
@@ -79,24 +93,15 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const deleteChat = (id: string) => {
-    setChats((prev) => prev.filter((c) => c.id !== id));
-    if (selectedChatId === id) {
-      const remaining = chats.filter((c) => c.id !== id);
-      setSelectedChatId(remaining[0]?.id || null);
-    }
-  };
-
   return (
     <DashboardContext.Provider
       value={{
         chats,
         selectedChatId,
-        addChat,
+        createNewChat,
         selectChat,
-        updateChatResult,
         addMessageToChat,
-        deleteChat,
+        refreshChats: fetchHistory,
       }}
     >
       {children}
