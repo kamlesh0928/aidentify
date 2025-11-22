@@ -282,25 +282,25 @@ export default function DetectionArea() {
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-sidebar-border bg-background/95 backdrop-blur-xl">
-        <div className="max-w-4xl mx-auto p-6">
+      <div className="pb-2 border-sidebar-border bg-background/80 backdrop-blur-md">
+        <div className="max-w-4xl mx-auto px-4 py-3">
           {attachedFile && (
-            <div className="mb-4 flex items-center justify-between bg-sidebar px-5 py-3 rounded-2xl">
-              <span className="text-foreground/80 truncate max-w-md">
+            <div className="mb-2 flex items-center justify-between bg-sidebar px-4 py-2 rounded-lg border border-sidebar-border">
+              <span className="text-foreground/90 text-sm truncate max-w-xs">
                 {attachedFile.name}
               </span>
               <button
                 onClick={() => setAttachedFile(null)}
-                className="hover:text-red-400"
+                className="text-foreground/50 hover:text-red-400"
               >
-                <X className="w-6 h-6" />
+                <X className="w-4 h-4" />
               </button>
             </div>
           )}
 
-          <div className="flex items-center gap-4 bg-card rounded-2xl border border-sidebar-border p-4 shadow-xl">
-            <label className="cursor-pointer p-4 rounded-full hover:bg-sidebar-accent/20 transition">
-              <Paperclip className="w-7 h-7 text-foreground/70" />
+          <div className="flex items-center gap-2 bg-card rounded-full border border-sidebar-border px-2 py-2 shadow-sm hover:border-primary/30 transition-colors">
+            <label className="cursor-pointer p-2 rounded-full hover:bg-sidebar-accent/50 transition flex-shrink-0">
+              <Paperclip className="w-5 h-5 text-foreground/50" />
               <input
                 type="file"
                 className="hidden"
@@ -311,13 +311,15 @@ export default function DetectionArea() {
               />
             </label>
 
-            <div className="flex-1" {...getRootProps()}>
+            <div className="flex-1 min-w-0" {...getRootProps()}>
               <input {...getInputProps()} />
               <button
                 onClick={open}
-                className="w-full text-left px-6 py-4 text-foreground/60 hover:text-foreground text-lg font-medium"
+                className="w-full text-left px-2 py-1 text-foreground/50 hover:text-foreground/80 text-sm font-medium truncate bg-transparent focus:outline-none"
               >
-                Drop or click to upload image, video, or audio
+                {attachedFile
+                  ? "File selected. Click send to analyze."
+                  : "Upload image, video, or audio..."}
               </button>
             </div>
 
@@ -325,17 +327,25 @@ export default function DetectionArea() {
               onClick={handleSubmit}
               disabled={!attachedFile || isAnalyzing}
               className={`
-                p-4 rounded-full transition-all shadow-lg
+                p-2 rounded-full transition-all flex-shrink-0
                 ${
                   attachedFile && !isAnalyzing
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "bg-muted text-muted-foreground cursor-not-allowed"
+                    ? "bg-primary text-primary-foreground shadow-md hover:scale-105"
+                    : "bg-muted/50 text-muted-foreground cursor-not-allowed"
                 }
               `}
             >
-              <Send className="w-6 h-6" />
+              {isAnalyzing ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
             </button>
           </div>
+          
+          <p className="text-center text-xs text-foreground/40 mt-2.5 opacity-70">
+            Supports images, videos, MP3 & WAV audio
+          </p>
         </div>
       </div>
     </div>
