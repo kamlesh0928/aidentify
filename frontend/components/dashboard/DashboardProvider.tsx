@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useUser } from "@clerk/nextjs";
 import axios from "axios";
+import toast from "react-hot-toast";
 
 export interface Message {
   id: string;
@@ -35,6 +36,7 @@ interface DashboardContextType {
   selectChat: (id: string) => void;
   addMessageToChat: (chatId: string, message: Message) => void;
   refreshChats: () => void;
+  deleteChat: (chatId: string) => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(
@@ -93,6 +95,24 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const deleteChat = async (chatId: string) => {
+    try {
+      const email = user?.emailAddresses[0].emailAddress;
+      await axios.delete(
+        `${SERVER_URL}/api/chat/delete?email=${email}&chatId=${chatId}`
+      );
+
+      if (selectedChatId === chatId) {
+        createNewChat();
+      }
+
+      fetchHistory();
+      toast.success("Chat deleted successfully");
+    } catch (error) {
+      console.log("Failed to delete chat: ", error);
+    }
+  };
+
   return (
     <DashboardContext.Provider
       value={{
@@ -102,6 +122,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         selectChat,
         addMessageToChat,
         refreshChats: fetchHistory,
+        deleteChat,
       }}
     >
       {children}

@@ -14,7 +14,8 @@ import * as Tooltip from "@radix-ui/react-tooltip";
 import { useDashboard } from "../dashboard/DashboardProvider";
 
 export default function Sidebar() {
-  const { chats, selectedChatId, createNewChat, selectChat } = useDashboard();
+  const { chats, selectedChatId, createNewChat, selectChat, deleteChat } =
+    useDashboard();
   const [isOpen, setIsOpen] = useState(true);
 
   const toggleSidebar = () => setIsOpen((prev) => !prev);
@@ -125,6 +126,7 @@ export default function Sidebar() {
                   chat={chat} // FIX: Pass the full chat object required by updated interface
                   isSelected={selectedChatId === chat.id}
                   onClick={() => selectChat(chat.id)}
+                  onDelete={() => deleteChat(chat.id)}
                 />
               ))}
             </div>
