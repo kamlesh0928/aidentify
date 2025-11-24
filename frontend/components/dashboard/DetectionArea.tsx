@@ -220,9 +220,13 @@ export default function DetectionArea() {
                       </video>
                     )}
                     {msg.type === "audio" && (
-                      <audio controls className="w-full">
-                        <source src={getMediaSource(msg)} />
-                      </audio>
+                      <div className="w-full min-w-[300px]">
+                        <audio
+                          controls
+                          className="w-full mt-1"
+                          src={getMediaSource(msg)}
+                        />
+                      </div>
                     )}
                   </div>
                 ) : (
@@ -271,9 +275,16 @@ export default function DetectionArea() {
 
           {isAnalyzing && (
             <div className="flex justify-start">
-              <div className="px-6 py-4 bg-card rounded-2xl border border-sidebar-border flex items-center gap-3">
-                <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                <span className="text-lg">Analyzing your media...</span>
+              <div className="px-6 py-4 bg-card rounded-2xl border border-sidebar-border flex flex-col gap-2">
+                <div className="flex items-center gap-3">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  <span className="text-lg font-medium">
+                    Analyzing your media...
+                  </span>
+                </div>
+                <p className="text-sm text-foreground/60 ml-9">
+                  It may take a few minutes
+                </p>
               </div>
             </div>
           )}
@@ -342,7 +353,7 @@ export default function DetectionArea() {
               )}
             </button>
           </div>
-          
+
           <p className="text-center text-xs text-foreground/40 mt-2.5 opacity-70">
             Supports images, videos, MP3 & WAV audio
           </p>

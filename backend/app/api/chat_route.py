@@ -4,6 +4,7 @@ from bson import ObjectId
 
 from app.core.database import db
 from app.schemas.chat_schema import ChatSchema
+from app.crud.media_cleanup import delete_media_for_chat_id
 from app.utils.logger import logger
 
 router = APIRouter()
@@ -54,6 +55,7 @@ async def delete_chat(
     """
 
     try:
+        await delete_media_for_chat_id(chatId)
         result = await db["chats"].delete_one({"_id": ObjectId(chatId), "user_email": email})
 
         if result.deleted_count == 0:
