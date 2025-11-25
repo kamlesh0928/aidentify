@@ -5,6 +5,7 @@ import { useUser } from "@clerk/nextjs";
 import axios from "axios";
 import {
   Paperclip,
+  ScanEye,
   Send,
   Loader2,
   X,
@@ -176,13 +177,14 @@ export default function DetectionArea() {
           {messages.length === 0 && !isAnalyzing && (
             <div className="text-center py-24">
               <div className="w-28 h-28 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
-                <Paperclip className="w-14 h-14 text-primary" />
+                <ScanEye className="w-14 h-14 text-primary" />
               </div>
               <h2 className="text-3xl font-bold text-foreground mb-3">
-                Detect AI in Media
+                Human or Machine?
               </h2>
               <p className="text-foreground/60 text-lg">
-                Upload an image, video, or audio file (.mp3, .wav)
+                Analyze the authenticity of your media to detect deepfakes and
+                AI generation.
               </p>
             </div>
           )}

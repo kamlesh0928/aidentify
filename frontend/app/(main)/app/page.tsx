@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ModeToggle } from "@/components/ModeToggle";
 import DetectionArea from "@/components/dashboard/DetectionArea";
+import { MoreOptions } from "@/components/MoreOptions";
 
 export default function DashboardPage() {
   return (
@@ -10,7 +11,10 @@ export default function DashboardPage() {
           <h1 className="text-xl font-bold text-foreground">AIdentify</h1>
         </Link>
 
-        <ModeToggle />
+        <div className="flex gap-4">
+          <ModeToggle />
+          <MoreOptions />
+        </div>
       </header>
 
       <main className="flex-1 min-h-0 relative">
