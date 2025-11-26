@@ -102,6 +102,7 @@ export default function DetectionArea() {
     formData.append("file", attachedFile);
     formData.append("mime_type", mimeType);
     formData.append("email", user!.emailAddresses[0].emailAddress);
+    formData.append("clerk_user_id", user!.id);
 
     if (selectedChatId) {
       formData.append("chat_id", selectedChatId);

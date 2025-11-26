@@ -6,6 +6,7 @@ from app.api.image_route import router as image_router
 from app.api.video_route import router as video_router
 from app.api.audio_route import router as audio_router
 from app.api.chat_route import router as chat_router
+from app.api.webhook_route import router as webhook_router
 
 app = FastAPI(title="AIdentify Backend")
 
@@ -21,6 +22,7 @@ app.include_router(image_router, prefix="/api/image", tags=["Image Analysis"])
 app.include_router(video_router, prefix="/api/video", tags=["Video Analysis"])
 app.include_router(audio_router, prefix="/api/audio", tags=["Audio Analysis"])
 app.include_router(chat_router, prefix="/api/chat", tags=["Chat History"])
+app.include_router(webhook_router, prefix="/api/webhook", tags=["Webhooks"])
 
 @app.get("/")
 def root():

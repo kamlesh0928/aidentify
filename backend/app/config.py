@@ -11,3 +11,4 @@ class Config:
     MONGO_DB_NAME=os.getenv("MONGO_DB_NAME")
     GEMINI_API_KEY=os.getenv("GEMINI_API_KEY")
     CLIENT_URL=os.getenv("CLIENT_URL")
+    CLERK_WEBHOOK_SECRET=os.getenv("CLERK_WEBHOOK_SECRET")

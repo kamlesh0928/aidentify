@@ -20,3 +20,4 @@ opencv-python
 scikit-image
 google-generativeai
 librosa
+svix

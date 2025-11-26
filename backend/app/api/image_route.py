@@ -16,6 +16,7 @@ router = APIRouter()
 
 @router.post("/analyze")
 async def analyze_image(
+    clerk_user_id: Annotated[str, Form()],
     email: Annotated[str, Form()], 
     mime_type: Annotated[str, Form()],
     chat_id: Annotated[Optional[str], Form()] = None,
@@ -66,6 +67,7 @@ async def analyze_image(
 
         if not chat_id or chat_id == "null" or chat_id == "":
             new_chat = {
+                "clerk_user_id": clerk_user_id,
                 "user_email": email,
                 "title": f"Image Analysis {datetime.now().strftime('%H:%M')}",
                 "created_at": datetime.now(),
