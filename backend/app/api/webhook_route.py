@@ -11,7 +11,7 @@ router = APIRouter()
 @router.post("/clerk")
 async def clerk_webhook(
     request: Request,
-    svix_id: str = Header(..., alias="svix_id"),
+    svix_id: str = Header(..., alias="svix-id"),
     svix_timestamp: str = Header(..., alias="svix-timestamp"),
     svix_signature: str = Header(..., alias="svix-signature")
 ):
@@ -21,16 +21,16 @@ async def clerk_webhook(
     """
 
     headers = {
-        "svix_id": svix_id,
-        "svix_timestamp": svix_timestamp,
-        "svix_signature": svix_signature
+        "svix-id": svix_id,
+        "svix-timestamp": svix_timestamp,
+        "svix-signature": svix_signature
     }
 
     payload = await request.body()
 
     try:
-        wehbook = Webhook(Config.CLERK_WEBHOOK_SECRET)
-        event = wehbook.verify(payload, headers)
+        webhook = Webhook(Config.CLERK_WEBHOOK_SECRET)
+        event = webhook.verify(payload, headers)
     
     except WebhookVerificationError as e:
         logger.error(f"Clerk Webhook verification failed: {e}")
