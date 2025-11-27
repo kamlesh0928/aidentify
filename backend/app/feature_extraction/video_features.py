@@ -1,18 +1,9 @@
 import cv2
 import numpy as np
+from skimage import color
+from skimage.measure import shannon_entropy
 
 from app.utils.logger import logger
-
-def calculate_entropy(image_channel: np.ndarray) ->float:
-    """
-        Calculate the entropy of a single channel of an image.
-    """
-
-    hist, _ = np.histogram(image_channel, bins=256, range=(0, 256))
-    hist = hist / hist.sum()  # Normalize histogram
-    hist = hist[hist > 0]  # Remove zero entries
-    entropy = -np.sum(hist * np.log2(hist))
-    return entropy
 
 def extract_video_features(video_path: str) -> dict:
     """
@@ -58,8 +49,8 @@ def extract_video_features(video_path: str) -> dict:
         noise_level = cv2.Laplacian(gray_frame, cv2.CV_64F).var()
 
         # Convert frame to HSV color space to focus on hue variation
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        hue_entropy = calculate_entropy(hsv[:, :, 0])
+        hsv = color.rgb2hsv(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        hue_entropy = shannon_entropy(hsv[:, :, 0])
 
         # Store all the frame feature values
         edge_densities.append(edge_density)
