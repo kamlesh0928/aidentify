@@ -1,9 +1,18 @@
 import cv2
 import numpy as np
-from skimage import color
-from skimage.measure import shannon_entropy
 
 from app.utils.logger import logger
+
+def calculate_entropy(image_channel: np.ndarray) ->float:
+    """
+        Calculate the entropy of a single channel of an image.
+    """
+
+    hist, _ = np.histogram(image_channel, bins=256, range=(0, 256))
+    hist = hist / hist.sum()  # Normalize histogram
+    hist = hist[hist > 0]  # Remove zero entries
+    entropy = -np.sum(hist * np.log2(hist))
+    return entropy
 
 def extract_image_features(image_path: str) -> dict:
     """
@@ -29,8 +38,9 @@ def extract_image_features(image_path: str) -> dict:
     noise_level = cv2.Laplacian(gray_image, cv2.CV_64F).var()
 
     # Color entropy
-    hsv = color.rgb2hsv(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-    hue_entropy = shannon_entropy(hsv[:, :, 0])
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    hue_channel = hsv_image[:, :, 0]
+    hue_entropy = calculate_entropy(hue_channel)
 
     # Compile all features into a dictionary
     features = {

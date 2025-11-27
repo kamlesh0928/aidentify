@@ -7,13 +7,8 @@ python-dotenv
 cloudinary
 motor
 pydantic
-Pillow
-librosa
-ffmpeg-python
-moviepy
 requests
 typing-extensions
 opencv-python-headless
-scikit-image
 google-generativeai
 svix
