@@ -12,7 +12,7 @@ app = FastAPI(title="AIdentify Backend")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=Config.CLIENT_URL,
+    allow_origins=[Config.CLIENT_URL_1, Config.CLIENT_URL_2, Config.CLIENT_URL_3],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
