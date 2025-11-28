@@ -17,4 +17,3 @@ opencv-python-headless
 scikit-image
 google-generativeai
 svix
-shutil
