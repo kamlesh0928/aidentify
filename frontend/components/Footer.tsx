@@ -15,7 +15,7 @@ export default function Footer() {
           </p>
         </div>
 
-        {/* Social Icons */}
+        {/* Social Media Links */}
         <div className="flex gap-5">
           <Link
             href="https://www.linkedin.com/in/kamlesh5242/"
