@@ -5,6 +5,7 @@ import os
 from bson import ObjectId
 from datetime import datetime
 import uuid
+import shutil
 
 from app.core.cloudinary_client import upload_audio
 from app.core.database import db
@@ -30,8 +31,7 @@ async def analyze_audio(
     try:
         # Save the uploaded file to a temporary location
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-            content = await file.read()
-            temp_file.write(content)
+            shutil.copyfileobj(file.file, temp_file)
             temp_file_path = temp_file.name
         
         # Upload audio to Cloudinary

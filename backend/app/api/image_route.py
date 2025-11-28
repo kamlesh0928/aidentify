@@ -5,6 +5,7 @@ import os
 from bson import ObjectId
 from datetime import datetime
 import uuid
+import shutil
 
 from app.core.cloudinary_client import upload_image
 from app.core.database import db
@@ -29,8 +30,7 @@ async def analyze_image(
     try:
         # Save the uploaded file to a temporary location
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-            content = await file.read()
-            temp_file.write(content)
+            shutil.copyfileobj(file.file, temp_file)
             temp_file_path = temp_file.name
 
         # Upload image to Cloudinary
