@@ -10,11 +10,12 @@ import gc
 
 from app.core.cloudinary_client import upload_audio
 from app.core.database import db
-from app.feature_extraction.audio_features import extract_audio_features
 from app.utils.llm_analysis import analyze_audio_with_llm
 from app.utils.logger import logger
 
 router = APIRouter()
+
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB in bytes
 
 @router.post("/analyze")
 async def analyze_audio(
@@ -28,6 +29,9 @@ async def analyze_audio(
         Endpoint to upload and analyze the given audio file.
         Only .mp3 and .wav formats are supported.
     """
+    
+    if file.size and file.size > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File size exceeds the 50MB limit.")
 
     try:
         # Save the uploaded file to a temporary location
@@ -35,6 +39,11 @@ async def analyze_audio(
             shutil.copyfileobj(file.file, temp_file)
             temp_file_path = temp_file.name
         
+        # Verify size after saving (double check for safety)
+        if os.path.getsize(temp_file_path) > MAX_FILE_SIZE:
+             os.remove(temp_file_path)
+             raise HTTPException(status_code=413, detail="File size exceeds the 50MB limit.")
+
         # Free up memory
         del file
         gc.collect()
@@ -42,15 +51,11 @@ async def analyze_audio(
         # Upload audio to Cloudinary
         document_url = upload_audio(temp_file_path)
         logger.info(f"Audio uploaded to Cloudinary: {document_url}")
-        gc.collect()    # Release memory used during upload
+        gc.collect() 
 
-        # Extract audio features
-        features = extract_audio_features(temp_file_path)
-        gc.collect()    # Release memory used during feature extraction
-
-        # Get the (label, confidence, reason) with the help of LLM + audio features
-        label, confidence, reason = analyze_audio_with_llm(temp_file_path, features, mime_type)
-        gc.collect()    # Release memory used during LLM analysis
+        # Get the (label, confidence, reason) from LLM
+        label, confidence, reason = analyze_audio_with_llm(temp_file_path, mime_type)
+        gc.collect()
         
         user_msg_id = str(uuid.uuid4())
         ai_msg_id = str(uuid.uuid4())
@@ -93,21 +98,20 @@ async def analyze_audio(
 
         logger.info(f"Analysis result: {result}")
 
-        # Save the analysis result to the database
         return {
             "chat_id": chat_id,
             "user_message": user_message,
             "ai_message": ai_message
         }
     
+    except HTTPException as he:
+        raise he
     except Exception as e:
         logger.error(f"Error in uploading or analyzing audio: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
     
     finally:
-        # Clean up the temporary file
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
             logger.info(f"Temporary file {temp_file_path} deleted.")
-        
-        gc.collect()    # Final memory cleanup
+        gc.collect()

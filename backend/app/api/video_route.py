@@ -10,11 +10,12 @@ import gc
 
 from app.core.cloudinary_client import upload_video
 from app.core.database import db
-from app.feature_extraction.video_features import extract_video_features
 from app.utils.llm_analysis import analyze_video_with_llm
 from app.utils.logger import logger
 
 router = APIRouter()
+
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
 @router.post("/analyze")
 async def analyze_video(
@@ -27,12 +28,19 @@ async def analyze_video(
     """
         Endpoint to upload and analyze the given video.
     """
+    
+    if file.size and file.size > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File size exceeds the 50MB limit.")
 
     try:
         # Save the uploaded file to a temporary location
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
             shutil.copyfileobj(file.file, temp_file)
             temp_file_path = temp_file.name
+        
+        if os.path.getsize(temp_file_path) > MAX_FILE_SIZE:
+             os.remove(temp_file_path)
+             raise HTTPException(status_code=413, detail="File size exceeds the 50MB limit.")
         
         # Free up memory
         del file
@@ -41,15 +49,11 @@ async def analyze_video(
         # Upload video to Cloudinary
         document_url = upload_video(temp_file_path)
         logger.info(f"Video uploaded to Cloudinary: {document_url}")
-        gc.collect()    # Release memory used during upload
+        gc.collect()
 
-        # Extract image features
-        features = extract_video_features(temp_file_path)
-        gc.collect()    # Release memory used during feature extraction
-
-        # Get the (label, confidence, reason) with the help of LLM + video features
-        label, confidence, reason = analyze_video_with_llm(temp_file_path, features, mime_type)
-        gc.collect()    # Release memory used during LLM analysis
+        # Get the (label, confidence, reason) from LLM
+        label, confidence, reason = analyze_video_with_llm(temp_file_path, mime_type)
+        gc.collect()
 
         user_msg_id = str(uuid.uuid4())
         ai_msg_id = str(uuid.uuid4())
@@ -92,21 +96,20 @@ async def analyze_video(
 
         logger.info(f"Analysis result: {result}")
 
-        # Save the analysis result to the database
         return {
             "chat_id": chat_id,
             "user_message": user_message,
             "ai_message": ai_message
         }
     
+    except HTTPException as he:
+        raise he
     except Exception as e:
         logger.error(f"Error in uploading or analyzing video: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
     
     finally:
-        # Clean up the temporary file
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
             logger.info(f"Temporary file {temp_file_path} deleted.")
-        
-        gc.collect()    # Final memory cleanup
+        gc.collect()

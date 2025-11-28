@@ -8,39 +8,34 @@ from app.utils.logger import logger
 genai.configure(api_key=Config.GEMINI_API_KEY)
 model = genai.GenerativeModel("gemini-2.5-pro")
 
-def analyze_image_with_llm(temp_file_path: str, features: dict, mime_type: str) -> str:
+def analyze_image_with_llm(temp_file_path: str, mime_type: str) -> str:
     """
         Analyzes the image using a large language model(Gemini) to classify it as 'AI' or 'Real'.
     """
 
     uploaded_image = None
-
+    
     try:
         # Upload the image to Gemini
         uploaded_image = genai.upload_file(temp_file_path, mime_type=mime_type)
 
-        prompt = f"""
+        prompt = """
             You are an expert visual content analyst. Your task is to determine whether the provided image is 'AI' or 'Real'.
 
-            You are given:
-            - An input image file (uploaded separately).
-            - A summary of its extracted computer vision features:
-            {features}
-
             ### Instructions:
-            1. Carefully analyze the image and the provided features.
-            2. Decide whether the image is **AI** or **Real**.
+            1. Carefully analyze the visual details of the image.
+            2. Decide whether the image is **AI-generated** or **Real**.
             3. Estimate your **confidence score** between 0 and 1.
-            4. Provide a **concise reason (≤ 30 words)** supporting your classification.
+            4. Provide a **concise reason (≤ 30 words)** supporting your classification. Use simple English to ensure clarity.
 
             ### Response Format (strictly follow this JSON structure):
-            {{
+            {
             "label": "AI" | "Real",
-            "confidence": float,  # between 0 and 1
+            "confidence": float,
             "reason": "string (≤ 30 words)"
-            }}
+            }
 
-            Return **only** the JSON object, with no extra text or explanation.
+            Return **only** the JSON object, with no extra text.
         """
 
         response = model.generate_content([uploaded_image, prompt])
@@ -54,21 +49,20 @@ def analyze_image_with_llm(temp_file_path: str, features: dict, mime_type: str) 
 
     except Exception as e:
         logger.error(f"Error in LLM analysis: {str(e)}")
-        return f"Error in LLM analysis: {str(e)}"
+        return "Unknown", 0.0, f"Error: {str(e)}"
     
     finally:
-        # Clean up the uploaded image from Gemini
         if uploaded_image:
             genai.delete_file(uploaded_image)
             logger.info("Cleaned up uploaded image from Gemini.")
 
-def analyze_video_with_llm(temp_file_path: str, features: dict, mime_type: str) -> str:
+def analyze_video_with_llm(temp_file_path: str, mime_type: str) -> str:
     """
         Analyzes the video using a large language model(Gemini) to classify it as 'AI' or 'Real'.
     """
-
+    
     uploaded_video = None
-
+    
     try:
         # Upload the video to Gemini
         uploaded_video = genai.upload_file(temp_file_path, mime_type=mime_type)
@@ -78,28 +72,23 @@ def analyze_video_with_llm(temp_file_path: str, features: dict, mime_type: str) 
             time.sleep(2)
             uploaded_video = genai.get_file(uploaded_video.name)
 
-        prompt = f"""
-            You are an expert visual content analyst. Your task is to determine whether the provided image is 'AI' or 'Real'.
-
-            You are given:
-            - An input video file (uploaded separately).
-            - A summary of its extracted computer vision features:
-            {features}
+        prompt = """
+            You are an expert visual content analyst. Your task is to determine whether the provided video is 'AI' or 'Real'.
 
             ### Instructions:
-            1. Carefully analyze the image and the provided features.
-            2. Decide whether the video is **AI** or **Real**.
+            1. Carefully analyze the visual consistency, physics, and artifacts in the video.
+            2. Decide whether the video is **AI-generated** or **Real**.
             3. Estimate your **confidence score** between 0 and 1.
-            4. Provide a **concise reason (≤ 30 words)** supporting your classification.
+            4. Provide a **concise reason (≤ 30 words)** supporting your classification. Use simple English to ensure clarity.
 
             ### Response Format (strictly follow this JSON structure):
-            {{
+            {
             "label": "AI" | "Real",
-            "confidence": float,  # between 0 and 1
+            "confidence": float,
             "reason": "string (≤ 30 words)"
-            }}
+            }
 
-            Return **only** the JSON object, with no extra text or explanation.
+            Return **only** the JSON object, with no extra text.
         """
 
         response = model.generate_content([uploaded_video, prompt])
@@ -113,62 +102,41 @@ def analyze_video_with_llm(temp_file_path: str, features: dict, mime_type: str) 
 
     except Exception as e:
         logger.error(f"Error in LLM analysis: {str(e)}")
-        return f"Error in LLM analysis: {str(e)}"
+        return "Unknown", 0.0, f"Error: {str(e)}"
     
     finally:
-        # Clean up the uploaded video from Gemini
         if uploaded_video:
             genai.delete_file(uploaded_video)
             logger.info("Cleaned up uploaded video from Gemini.")
 
-def analyze_audio_with_llm(temp_file_path: str, features: dict, mime_type: str) -> str:
+def analyze_audio_with_llm(temp_file_path: str, mime_type: str) -> str:
     """
         Analyzes the audio using a large language model(Gemini) to classify it as 'AI' or 'Real'.
     """
-
+    
     uploaded_audio = None
-
+    
     try:
         # Upload the audio to Gemini
         uploaded_audio = genai.upload_file(temp_file_path, mime_type=mime_type)
 
-        prompt = f"""
-            You are an expert audio forensics and content authenticity analyst.
+        prompt = """
+            You are an expert audio forensics analyst. Your task is to determine whether the provided audio file is **AI** or **Real**.
 
-            Your task is to determine whether the provided audio file was **AI** or **Real**.
+            ### Instructions:
+            1. Listen for acoustic realism, breathing patterns, artifacts, and digital anomalies.
+            2. Decide whether the audio is **AI-generated** or **Real**.
+            3. Estimate your **confidence score** between 0 and 1.
+            4. Provide a **concise reason (≤ 30 words)** supporting your classification. Use simple English to ensure clarity.
 
-            You are given:
-            - An input audio file (uploaded separately)
-            - Extracted low-level and spectral features from the audio signal:
-            {features}
-
-            ---
-
-            ### Your analysis should consider:
-            1. **Sound Type** — The audio could be anything: human voice, animal call, crowd sound, environmental noise, instrumental sound, or synthetic tone.  
-            - Do NOT assume it is human speech.
-            2. **Acoustic Realism** — Analyze whether the texture, dynamics, and noise patterns sound physically natural or digitally produced.
-            3. **Artifacts & Anomalies** — Look for unnatural transitions, overly clean frequency bands, looping noise, repetitive textures, or artifacts typical of AI audio generation.
-            4. **Statistical Cues** — Use the provided features (e.g., spectral centroid, MFCC smoothness, entropy, and RMS variation) to reason about naturalness and authenticity.
-            5. **Broad Context Awareness** — Even if the sound has no words or recognizable meaning, judge its realism, depth, and recording consistency.
-
-            ---
-
-            ### Decision Task:
-            Determine whether the audio is:
-            - **"AI"** → if it shows synthetic or algorithmic characteristics, even if realistic.
-            - **"Real"** → if it appears to be a naturally recorded or unaltered real-world sound.
-
-            ---
-
-            ### Response Format (strict JSON only):
-            {{
+            ### Response Format (strictly follow this JSON structure):
+            {
             "label": "AI" | "Real",
-            "confidence": float,  # between 0 and 1
-            "reason": "string (≤ 30 words, explaining the key cues)"
-            }}
+            "confidence": float,
+            "reason": "string (≤ 30 words)"
+            }
 
-            Return **only** the JSON object, with no explanations outside it.
+            Return **only** the JSON object, with no extra text.
         """
 
         response = model.generate_content([uploaded_audio, prompt])
@@ -182,10 +150,9 @@ def analyze_audio_with_llm(temp_file_path: str, features: dict, mime_type: str) 
 
     except Exception as e:
         logger.error(f"Error in LLM analysis: {str(e)}")
-        return f"Error in LLM analysis: {str(e)}"
+        return "Unknown", 0.0, f"Error: {str(e)}"
     
     finally:
-        # Clean up the uploaded audio from Gemini
         if uploaded_audio:
             genai.delete_file(uploaded_audio)
             logger.info("Cleaned up uploaded audio from Gemini.")
