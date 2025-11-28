@@ -7,5 +7,5 @@ if __name__ == "__main__":
         port=5001, 
         reload=True,
         timeout_keep_alive=180,
-        limit_concurrency=10
+        limit_concurrency=3
     )

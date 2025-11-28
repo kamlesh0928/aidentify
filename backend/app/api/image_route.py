@@ -6,6 +6,7 @@ from bson import ObjectId
 from datetime import datetime
 import uuid
 import shutil
+import gc
 
 from app.core.cloudinary_client import upload_image
 from app.core.database import db
@@ -33,15 +34,22 @@ async def analyze_image(
             shutil.copyfileobj(file.file, temp_file)
             temp_file_path = temp_file.name
 
+        # Free up memory
+        del file
+        gc.collect()
+
         # Upload image to Cloudinary
         document_url = upload_image(temp_file_path)
         logger.info(f"Image uploaded to Cloudinary: {document_url}")
+        gc.collect()    # Release memory used during upload
 
         # Extract image features
         features = extract_image_features(temp_file_path)
+        gc.collect()    # Release memory used during feature extraction
 
         # Get the (label, confidence, reason) with the help of LLM + image features
         label, confidence, reason = analyze_image_with_llm(temp_file_path, features, mime_type)
+        gc.collect()    # Release memory used during LLM analysis
 
         user_msg_id = str(uuid.uuid4())
         ai_msg_id = str(uuid.uuid4())
@@ -100,3 +108,5 @@ async def analyze_image(
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
             logger.info(f"Temporary file {temp_file_path} deleted.")
+        
+        gc.collect()    # Final memory cleanup

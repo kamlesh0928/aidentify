@@ -37,7 +37,7 @@ def upload_audio(file_path: str) -> str:
     folder_name = "AIdentify/audios"
 
     # Cloudinary uses resource_type "video" to store audio files.
-    response = cloudinary.uploader.upload(file_path, folder = folder_name, resource_type = "video")
+    response = cloudinary.uploader.upload_large(file_path, folder = folder_name, resource_type = "video")
     return response["secure_url"]
 
 def delete_resource(public_id: str, resource_type: str) -> dict:

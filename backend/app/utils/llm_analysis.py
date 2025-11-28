@@ -13,34 +13,36 @@ def analyze_image_with_llm(temp_file_path: str, features: dict, mime_type: str) 
         Analyzes the image using a large language model(Gemini) to classify it as 'AI' or 'Real'.
     """
 
-    # Upload the image to Gemini
-    uploaded_image = genai.upload_file(temp_file_path, mime_type=mime_type)
-
-    prompt = f"""
-        You are an expert visual content analyst. Your task is to determine whether the provided image is 'AI' or 'Real'.
-
-        You are given:
-        - An input image file (uploaded separately).
-        - A summary of its extracted computer vision features:
-        {features}
-
-        ### Instructions:
-        1. Carefully analyze the image and the provided features.
-        2. Decide whether the image is **AI** or **Real**.
-        3. Estimate your **confidence score** between 0 and 1.
-        4. Provide a **concise reason (≤ 30 words)** supporting your classification.
-
-        ### Response Format (strictly follow this JSON structure):
-        {{
-        "label": "AI" | "Real",
-        "confidence": float,  # between 0 and 1
-        "reason": "string (≤ 30 words)"
-        }}
-
-        Return **only** the JSON object, with no extra text or explanation.
-    """
+    uploaded_image = None
 
     try:
+        # Upload the image to Gemini
+        uploaded_image = genai.upload_file(temp_file_path, mime_type=mime_type)
+
+        prompt = f"""
+            You are an expert visual content analyst. Your task is to determine whether the provided image is 'AI' or 'Real'.
+
+            You are given:
+            - An input image file (uploaded separately).
+            - A summary of its extracted computer vision features:
+            {features}
+
+            ### Instructions:
+            1. Carefully analyze the image and the provided features.
+            2. Decide whether the image is **AI** or **Real**.
+            3. Estimate your **confidence score** between 0 and 1.
+            4. Provide a **concise reason (≤ 30 words)** supporting your classification.
+
+            ### Response Format (strictly follow this JSON structure):
+            {{
+            "label": "AI" | "Real",
+            "confidence": float,  # between 0 and 1
+            "reason": "string (≤ 30 words)"
+            }}
+
+            Return **only** the JSON object, with no extra text or explanation.
+        """
+
         response = model.generate_content([uploaded_image, prompt])
         parsed_response = parse_llm_response(response.text)
 

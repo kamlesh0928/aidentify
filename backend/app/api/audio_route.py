@@ -6,6 +6,7 @@ from bson import ObjectId
 from datetime import datetime
 import uuid
 import shutil
+import gc
 
 from app.core.cloudinary_client import upload_audio
 from app.core.database import db
@@ -34,16 +35,23 @@ async def analyze_audio(
             shutil.copyfileobj(file.file, temp_file)
             temp_file_path = temp_file.name
         
+        # Free up memory
+        del file
+        gc.collect()
+        
         # Upload audio to Cloudinary
         document_url = upload_audio(temp_file_path)
         logger.info(f"Audio uploaded to Cloudinary: {document_url}")
+        gc.collect()    # Release memory used during upload
 
         # Extract audio features
         features = extract_audio_features(temp_file_path)
+        gc.collect()    # Release memory used during feature extraction
 
         # Get the (label, confidence, reason) with the help of LLM + audio features
         label, confidence, reason = analyze_audio_with_llm(temp_file_path, features, mime_type)
-
+        gc.collect()    # Release memory used during LLM analysis
+        
         user_msg_id = str(uuid.uuid4())
         ai_msg_id = str(uuid.uuid4())
 
@@ -101,3 +109,5 @@ async def analyze_audio(
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
             logger.info(f"Temporary file {temp_file_path} deleted.")
+        
+        gc.collect()    # Final memory cleanup
