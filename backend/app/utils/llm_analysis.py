@@ -6,7 +6,7 @@ from app.utils.parse_llm_response import parse_llm_response
 from app.utils.logger import logger
 
 genai.configure(api_key=Config.GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-2.5-pro")
+model = genai.GenerativeModel("gemini-3-flash-preview")
 
 def analyze_image_with_llm(temp_file_path: str, mime_type: str) -> str:
     """
