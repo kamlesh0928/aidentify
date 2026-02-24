@@ -10,3 +10,4 @@ requests
 typing-extensions
 google-generativeai
 svix
+pytz
